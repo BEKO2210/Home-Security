@@ -20,6 +20,15 @@ export interface ChatMessage {
   content: string;
 }
 
+/** crypto.randomUUID existiert nur in Secure Contexts (HTTPS/localhost) —
+ *  im Heimnetz läuft die App über HTTP, daher eigener Fallback. */
+export function uid(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 const PROFILES_KEY = "heimgeist.profiles";
 const ACTIVE_KEY = "heimgeist.activeProfile";
 const SETTINGS_KEY = "heimgeist.settings";

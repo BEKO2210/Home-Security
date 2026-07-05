@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { store, Profile, Role, ROLE_LABEL } from "@/lib/store";
+import { store, uid, Profile, Role, ROLE_LABEL } from "@/lib/store";
 
 const EMOJIS = ["🦊", "🐻", "🦉", "🐨", "🦁", "🐰", "🐸", "🦄", "🐙", "🐝"];
 const ROLES: Role[] = ["eltern", "kind", "grosseltern", "gast"];
@@ -29,7 +29,7 @@ export default function Profiles() {
   function addProfile() {
     if (!name.trim()) return;
     const p: Profile = {
-      id: crypto.randomUUID(),
+      id: uid(),
       name: name.trim(),
       emoji,
       role,
