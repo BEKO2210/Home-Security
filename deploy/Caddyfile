@@ -3,6 +3,7 @@
 	auto_https disable_redirects
 }
 
-https://:3443 {
+pop-os.local:3443, 192.168.2.158:3443, localhost:3443 {
+	tls internal
 	reverse_proxy 127.0.0.1:3100
 }
