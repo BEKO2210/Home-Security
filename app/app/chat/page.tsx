@@ -2,13 +2,33 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   store,
   Profile,
   ChatMessage,
   systemPrompt,
+  profileColor,
 } from "@/lib/store";
+import { pickBestModel } from "@/lib/models";
 import { createVoiceAdapter, VoiceAdapter } from "@/lib/voice";
+import {
+  IconMic,
+  IconSend,
+  IconStop,
+  IconCopy,
+  IconRefresh,
+  IconCheck,
+  IconLogo,
+} from "@/components/icons";
+
+const STARTERS = [
+  "Was kochen wir heute Abend?",
+  "Hilf mir bei den Hausaufgaben",
+  "Erzähl uns einen Witz",
+  "Plane unser Wochenende",
+];
 
 export default function Chat() {
   const router = useRouter();
@@ -18,6 +38,8 @@ export default function Chat() {
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceOk, setVoiceOk] = useState(false);
+  const [model, setModel] = useState("");
+  const [copied, setCopied] = useState<number | null>(null);
   const voiceRef = useRef<VoiceAdapter | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -32,20 +54,26 @@ export default function Chat() {
     setMessages(store.chat(p.id));
     voiceRef.current = createVoiceAdapter();
     setVoiceOk(voiceRef.current.available());
+
+    const settings = store.settings();
+    if (settings.model) {
+      setModel(settings.model);
+    } else {
+      const url = encodeURIComponent(settings.ollamaUrl);
+      fetch(`/api/models?ollamaUrl=${url}`)
+        .then((r) => r.json())
+        .then((d) => setModel(pickBestModel(d.models) ?? "llama3.1:8b"))
+        .catch(() => setModel("llama3.1:8b"));
+    }
   }, [router]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, busy]);
 
-  async function send(text: string) {
-    if (!profile || !text.trim() || busy) return;
-    const userMsg: ChatMessage = { role: "user", content: text.trim() };
-    const history = [...messages, userMsg];
-    setMessages(history);
-    setInput("");
+  async function run(history: ChatMessage[]) {
+    if (!profile) return;
     setBusy(true);
-
     const settings = store.settings();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -56,10 +84,12 @@ export default function Chat() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: settings.model || "llama3.1:8b",
+          model: model || "llama3.1:8b",
           system: systemPrompt(profile),
           messages: history,
           ollamaUrl: settings.ollamaUrl,
+          profileId: profile.id,
+          allowDownload: profile.role === "eltern",
         }),
         signal: controller.signal,
       });
@@ -72,10 +102,12 @@ export default function Chat() {
         assistantText += decoder.decode(value, { stream: true });
         setMessages([...history, { role: "assistant", content: assistantText }]);
       }
-    } catch {
-      assistantText =
-        assistantText ||
-        "Uups — da ist etwas schiefgelaufen. Ist der Ollama-Server erreichbar? (Einstellungen → Testen)";
+    } catch (err) {
+      const aborted = err instanceof DOMException && err.name === "AbortError";
+      if (!aborted && !assistantText) {
+        assistantText =
+          "Da ist etwas schiefgelaufen. Ist der Ollama-Server erreichbar? (Einstellungen → Testen)";
+      }
       setMessages([...history, { role: "assistant", content: assistantText }]);
     } finally {
       const final: ChatMessage[] = [
@@ -85,6 +117,45 @@ export default function Chat() {
       store.saveChat(profile.id, final);
       setBusy(false);
       abortRef.current = null;
+    }
+  }
+
+  function send(text: string) {
+    if (!profile || !text.trim() || busy) return;
+    const history = [...messages, { role: "user" as const, content: text.trim() }];
+    setMessages(history);
+    setInput("");
+    run(history);
+  }
+
+  function stop() {
+    abortRef.current?.abort();
+  }
+
+  function regenerate() {
+    if (busy || !messages.length) return;
+    const history = [...messages];
+    if (history[history.length - 1]?.role === "assistant") history.pop();
+    setMessages(history);
+    run(history);
+  }
+
+  function copy(i: number, text: string) {
+    const done = () => {
+      setCopied(i);
+      setTimeout(() => setCopied(null), 1200);
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(done, done);
+    } else {
+      // HTTP-Fallback (Clipboard-API nur im Secure Context)
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      done();
     }
   }
 
@@ -114,13 +185,21 @@ export default function Chat() {
   return (
     <main className="flex flex-1 flex-col">
       <header className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-semibold">
-            Familien-<span className="text-ember-400">Chat</span>
-          </h1>
-          <p className="font-mono text-xs text-mist-500">
-            {profile.emoji} {profile.name}
-          </p>
+        <div className="flex items-center gap-3">
+          <span
+            className="flex h-10 w-10 items-center justify-center rounded-full font-display text-lg font-semibold text-night-950"
+            style={{ background: profileColor(profile) }}
+          >
+            {profile.name[0]?.toUpperCase()}
+          </span>
+          <div>
+            <h1 className="font-display text-xl font-semibold leading-tight">
+              Familien-Chat
+            </h1>
+            <p className="font-mono text-[11px] text-mist-500">
+              {profile.name} · {model || "Modell wird gewählt …"}
+            </p>
+          </div>
         </div>
         <button
           onClick={() => {
@@ -135,33 +214,73 @@ export default function Chat() {
 
       <div className="mt-6 flex-1 space-y-4 overflow-y-auto">
         {messages.length === 0 && (
-          <div className="glass rise mx-auto mt-10 max-w-sm rounded-2xl p-6 text-center">
-            <span className="text-4xl">🏠</span>
-            <p className="mt-3 font-display text-lg font-semibold">
+          <div className="rise mx-auto mt-8 max-w-md text-center">
+            <div className="glass mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-ember-400">
+              <IconLogo width={30} height={30} />
+            </div>
+            <p className="mt-4 font-display text-lg font-semibold">
               Hallo {profile.name}!
             </p>
-            <p className="mt-1 text-sm text-mist-300">
-              Frag mich was — Hausaufgaben, Rezepte, Wetter-Plausch oder
-              Familienplanung.
-            </p>
+            <p className="mt-1 text-sm text-mist-300">Womit kann ich helfen?</p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              {STARTERS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => send(s)}
+                  className="glass rounded-full px-4 py-2 text-sm text-mist-300 transition hover:border-ember-500/40 hover:text-mist-100"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
         )}
+
         {messages.map((m, i) => (
           <div
             key={i}
             className={`bubble-in flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
           >
-            <div
-              className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-[15px] leading-relaxed ${
-                m.role === "user"
-                  ? "rounded-br-md bg-ember-500 text-night-950"
-                  : "glass rounded-bl-md text-mist-100"
-              }`}
-            >
-              {m.content}
-            </div>
+            {m.role === "user" ? (
+              <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-ember-500 px-4 py-3 text-[15px] leading-relaxed text-night-950">
+                {m.content}
+              </div>
+            ) : (
+              <div className="group max-w-[85%]">
+                <div className="prose-chat glass rounded-2xl rounded-bl-md px-4 py-3 text-[15px] leading-relaxed">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {m.content}
+                  </ReactMarkdown>
+                </div>
+                {!busy && m.content && (
+                  <div className="mt-1 flex gap-1 opacity-0 transition group-hover:opacity-100">
+                    <button
+                      onClick={() => copy(i, m.content)}
+                      aria-label="Kopieren"
+                      className="rounded-lg p-1.5 text-mist-500 hover:bg-night-700 hover:text-mist-300"
+                    >
+                      {copied === i ? (
+                        <IconCheck width={15} height={15} />
+                      ) : (
+                        <IconCopy width={15} height={15} />
+                      )}
+                    </button>
+                    {i === messages.length - 1 && (
+                      <button
+                        onClick={regenerate}
+                        aria-label="Neu generieren"
+                        className="rounded-lg p-1.5 text-mist-500 hover:bg-night-700 hover:text-mist-300"
+                      >
+                        <IconRefresh width={15} height={15} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
+
         {busy && messages[messages.length - 1]?.role !== "assistant" && (
           <div className="thinking glass inline-flex rounded-2xl rounded-bl-md px-4 py-3">
             <span /><span /><span />
@@ -175,13 +294,13 @@ export default function Chat() {
           <button
             onClick={toggleVoice}
             aria-label="Spracheingabe"
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl transition ${
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition ${
               listening
                 ? "mic-live bg-ember-500 text-night-950"
-                : "bg-night-700 hover:bg-night-600"
+                : "bg-night-700 text-mist-300 hover:bg-night-600"
             }`}
           >
-            🎙️
+            <IconMic />
           </button>
         )}
         <textarea
@@ -197,14 +316,24 @@ export default function Chat() {
           placeholder={listening ? "Ich höre zu …" : "Nachricht an HeimGeist …"}
           className="max-h-32 min-h-[44px] w-full resize-none bg-transparent px-2 py-2.5 text-[15px] outline-none placeholder:text-mist-500"
         />
-        <button
-          onClick={() => send(input)}
-          disabled={busy || !input.trim()}
-          aria-label="Senden"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ember-500 text-lg text-night-950 transition hover:bg-ember-400 disabled:opacity-40"
-        >
-          ➤
-        </button>
+        {busy ? (
+          <button
+            onClick={stop}
+            aria-label="Stopp"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-night-700 text-mist-300 transition hover:bg-night-600"
+          >
+            <IconStop />
+          </button>
+        ) : (
+          <button
+            onClick={() => send(input)}
+            disabled={!input.trim()}
+            aria-label="Senden"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ember-500 text-night-950 transition hover:bg-ember-400 disabled:opacity-40"
+          >
+            <IconSend />
+          </button>
+        )}
       </div>
     </main>
   );

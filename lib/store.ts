@@ -5,9 +5,31 @@ export type Role = "eltern" | "kind" | "grosseltern" | "gast";
 export interface Profile {
   id: string;
   name: string;
-  emoji: string;
+  /** Akzentfarbe für den Monogramm-Avatar (Hex). */
+  color?: string;
+  /** Altbestand aus v1-Profilen; wird nicht mehr angezeigt. */
+  emoji?: string;
   role: Role;
   createdAt: number;
+}
+
+export const PROFILE_COLORS = [
+  "#f5a524",
+  "#2dd4bf",
+  "#60a5fa",
+  "#f472b6",
+  "#a78bfa",
+  "#4ade80",
+  "#fb923c",
+  "#94a3b8",
+];
+
+export function profileColor(p: Profile): string {
+  if (p.color) return p.color;
+  // stabile Farbe für Altprofile ohne color-Feld
+  let h = 0;
+  for (const c of p.id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return PROFILE_COLORS[h % PROFILE_COLORS.length];
 }
 
 export interface Settings {

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { store, Settings, DEFAULT_SETTINGS } from "@/lib/store";
+import { pickBestModel } from "@/lib/models";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -32,6 +33,8 @@ export default function SettingsPage() {
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   }
+
+  const best = pickBestModel(models);
 
   return (
     <main>
@@ -82,31 +85,40 @@ export default function SettingsPage() {
       <div className="glass rise rise-3 mt-5 rounded-2xl p-6">
         <h2 className="font-display text-xl font-semibold">Modell</h2>
         <p className="mt-1 text-sm text-mist-300">
-          Welches Modell soll HeimGeist nutzen?
+          Standard: HeimGeist wählt automatisch das beste verfügbare Modell.
         </p>
-        {models.length > 0 ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {models.map((m) => (
-              <button
-                key={m}
-                onClick={() => save({ ...settings, model: m })}
-                className={`rounded-full px-4 py-2 font-mono text-xs transition ${
-                  settings.model === m
-                    ? "bg-ember-500 font-medium text-night-950"
-                    : "border border-night-600 text-mist-300 hover:border-mist-500"
-                }`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-        ) : (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            onClick={() => save({ ...settings, model: "" })}
+            className={`rounded-full px-4 py-2 text-sm transition ${
+              !settings.model
+                ? "bg-ember-500 font-medium text-night-950"
+                : "border border-night-600 text-mist-300 hover:border-mist-500"
+            }`}
+          >
+            Automatisch{best ? ` (${best})` : ""}
+          </button>
+          {models.map((m) => (
+            <button
+              key={m}
+              onClick={() => save({ ...settings, model: m })}
+              className={`rounded-full px-4 py-2 font-mono text-xs transition ${
+                settings.model === m
+                  ? "bg-ember-500 font-medium text-night-950"
+                  : "border border-night-600 text-mist-300 hover:border-mist-500"
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+        {models.length === 0 && (
           <input
             value={settings.model}
             onChange={(e) => setSettings({ ...settings, model: e.target.value })}
             onBlur={(e) => save({ ...settings, model: e.target.value })}
-            placeholder="z. B. llama3.1:8b"
-            className="mt-4 w-full rounded-xl border border-night-600 bg-night-800 px-4 py-3 font-mono text-sm outline-none focus:border-ember-500"
+            placeholder="leer = automatisch, oder z. B. llama3.1:8b"
+            className="mt-3 w-full rounded-xl border border-night-600 bg-night-800 px-4 py-3 font-mono text-sm outline-none focus:border-ember-500"
           />
         )}
       </div>

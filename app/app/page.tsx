@@ -2,9 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { store, uid, Profile, Role, ROLE_LABEL } from "@/lib/store";
+import {
+  store,
+  uid,
+  Profile,
+  Role,
+  ROLE_LABEL,
+  PROFILE_COLORS,
+  profileColor,
+} from "@/lib/store";
+import { IconPlus, IconX } from "@/components/icons";
 
-const EMOJIS = ["🦊", "🐻", "🦉", "🐨", "🦁", "🐰", "🐸", "🦄", "🐙", "🐝"];
 const ROLES: Role[] = ["eltern", "kind", "grosseltern", "gast"];
 
 export default function Profiles() {
@@ -13,7 +21,7 @@ export default function Profiles() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
-  const [emoji, setEmoji] = useState(EMOJIS[0]);
+  const [color, setColor] = useState(PROFILE_COLORS[0]);
   const [role, setRole] = useState<Role>("eltern");
 
   useEffect(() => {
@@ -31,7 +39,7 @@ export default function Profiles() {
     const p: Profile = {
       id: uid(),
       name: name.trim(),
-      emoji,
+      color,
       role,
       createdAt: Date.now(),
     };
@@ -72,8 +80,13 @@ export default function Profiles() {
                 activeId === p.id ? "glow-ring" : ""
               }`}
             >
-              <span className="text-4xl">{p.emoji}</span>
-              <p className="mt-2 font-display text-lg font-semibold">{p.name}</p>
+              <span
+                className="mx-auto flex h-14 w-14 items-center justify-center rounded-full font-display text-2xl font-semibold text-night-950"
+                style={{ background: profileColor(p) }}
+              >
+                {p.name[0]?.toUpperCase()}
+              </span>
+              <p className="mt-3 font-display text-lg font-semibold">{p.name}</p>
               <p className="font-mono text-[10px] tracking-wider text-mist-500 uppercase">
                 {ROLE_LABEL[p.role]}
               </p>
@@ -81,18 +94,18 @@ export default function Profiles() {
             <button
               onClick={() => removeProfile(p.id)}
               aria-label={`${p.name} löschen`}
-              className="absolute -right-1.5 -top-1.5 hidden h-6 w-6 items-center justify-center rounded-full bg-night-700 text-xs text-mist-500 hover:bg-red-500/80 hover:text-white sm:flex"
+              className="absolute -right-1.5 -top-1.5 hidden h-6 w-6 items-center justify-center rounded-full bg-night-700 text-mist-500 hover:bg-red-500/80 hover:text-white sm:flex"
             >
-              ×
+              <IconX width={12} height={12} />
             </button>
           </div>
         ))}
 
         <button
           onClick={() => setCreating(true)}
-          className="rounded-2xl border-2 border-dashed border-night-600 p-5 text-mist-500 transition hover:border-ember-500/50 hover:text-ember-400"
+          className="flex min-h-36 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-night-600 p-5 text-mist-500 transition hover:border-ember-500/50 hover:text-ember-400"
         >
-          <span className="text-3xl">＋</span>
+          <IconPlus width={26} height={26} />
           <p className="mt-2 text-sm">Neues Profil</p>
         </button>
       </div>
@@ -108,17 +121,19 @@ export default function Profiles() {
             placeholder="Name"
             className="mt-4 w-full rounded-xl border border-night-600 bg-night-800 px-4 py-3 outline-none placeholder:text-mist-500 focus:border-ember-500"
           />
-          <div className="mt-4 flex flex-wrap gap-2">
-            {EMOJIS.map((e) => (
+          <div className="mt-4 flex flex-wrap gap-2.5">
+            {PROFILE_COLORS.map((c) => (
               <button
-                key={e}
-                onClick={() => setEmoji(e)}
-                className={`rounded-xl p-2 text-2xl transition ${
-                  emoji === e ? "bg-ember-500/20 glow-ring" : "hover:bg-night-700"
+                key={c}
+                onClick={() => setColor(c)}
+                aria-label={`Farbe ${c}`}
+                className={`h-9 w-9 rounded-full transition ${
+                  color === c
+                    ? "scale-110 ring-2 ring-mist-100 ring-offset-2 ring-offset-night-900"
+                    : "hover:scale-105"
                 }`}
-              >
-                {e}
-              </button>
+                style={{ background: c }}
+              />
             ))}
           </div>
           <div className="mt-4 flex flex-wrap gap-2">

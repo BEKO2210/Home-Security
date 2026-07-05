@@ -4,12 +4,28 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MODULES } from "@/lib/modules";
-import { store, Profile } from "@/lib/store";
+import { store, Profile, profileColor } from "@/lib/store";
+import { pickBestModel } from "@/lib/models";
+import {
+  IconChat,
+  IconWave,
+  IconCamera,
+  IconZap,
+  IconCpu,
+} from "@/components/icons";
+
+const ICON = {
+  chat: IconChat,
+  wave: IconWave,
+  camera: IconCamera,
+  zap: IconZap,
+};
 
 export default function Home() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [online, setOnline] = useState<boolean | null>(null);
+  const [autoModel, setAutoModel] = useState<string>("");
 
   useEffect(() => {
     const p = store.activeProfile();
@@ -18,10 +34,14 @@ export default function Home() {
       return;
     }
     setProfile(p);
-    const url = encodeURIComponent(store.settings().ollamaUrl);
+    const settings = store.settings();
+    const url = encodeURIComponent(settings.ollamaUrl);
     fetch(`/api/models?ollamaUrl=${url}`)
       .then((r) => r.json())
-      .then((d) => setOnline(d.online))
+      .then((d) => {
+        setOnline(d.online);
+        setAutoModel(settings.model || pickBestModel(d.models) || "");
+      })
       .catch(() => setOnline(false));
   }, [router]);
 
@@ -36,17 +56,25 @@ export default function Home() {
 
   return (
     <main>
-      <div className="rise rise-1 flex items-center justify-between">
+      <div className="rise rise-1 flex items-center gap-3">
+        <span
+          className="flex h-11 w-11 items-center justify-center rounded-full font-display text-xl font-semibold text-night-950"
+          style={{ background: profileColor(profile) }}
+        >
+          {profile.name[0]?.toUpperCase()}
+        </span>
         <div>
-          <h1 className="font-display text-3xl font-semibold">
-            {greeting}, <span className="text-ember-400">{profile.name}</span>{" "}
-            {profile.emoji}
+          <h1 className="font-display text-2xl font-semibold sm:text-3xl">
+            {greeting}, <span className="text-ember-400">{profile.name}</span>
           </h1>
-          <p className="mt-1 text-sm text-mist-300">Euer Zuhause auf einen Blick.</p>
+          <p className="text-sm text-mist-300">Euer Zuhause auf einen Blick.</p>
         </div>
       </div>
 
       <div className="glass rise rise-2 mt-6 flex items-center gap-3 rounded-2xl px-5 py-4">
+        <span className="text-mist-500">
+          <IconCpu width={18} height={18} />
+        </span>
         <span
           className={`inline-block h-2.5 w-2.5 rounded-full ${
             online === null
@@ -60,13 +88,14 @@ export default function Home() {
           {online === null
             ? "Prüfe lokale KI …"
             : online
-              ? "Lokale KI verbunden — alles bleibt im Haus"
+              ? `Lokale KI verbunden${autoModel ? ` · ${autoModel}` : ""} · alles bleibt im Haus`
               : "KI offline — Demo-Modus aktiv (Einstellungen prüfen)"}
         </span>
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {MODULES.map((m, i) => {
+          const Icon = ICON[m.icon];
           const inner = (
             <div
               className={`glass h-full rounded-2xl p-5 transition ${
@@ -74,7 +103,9 @@ export default function Home() {
               } rise rise-${Math.min(i + 3, 5)}`}
             >
               <div className="flex items-start justify-between">
-                <span className="text-3xl">{m.icon}</span>
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-night-700 text-ember-400">
+                  <Icon width={22} height={22} />
+                </span>
                 <span
                   className={`rounded-full px-3 py-1 font-mono text-[10px] tracking-wider uppercase ${
                     m.status === "aktiv"

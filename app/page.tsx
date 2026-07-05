@@ -1,34 +1,51 @@
 import Image from "next/image";
 import Link from "next/link";
+import {
+  IconUsers,
+  IconHome,
+  IconMic,
+  IconCamera,
+  IconPhone,
+  IconShield,
+} from "@/components/icons";
+
+const FEATURE_ICON: Record<string, typeof IconUsers> = {
+  users: IconUsers,
+  home: IconHome,
+  mic: IconMic,
+  camera: IconCamera,
+  phone: IconPhone,
+  shield: IconShield,
+};
 
 const features = [
   {
-    icon: "👨‍👩‍👧‍👦",
+    icon: "users",
     title: "Familienprofile",
     text: "Jedes Familienmitglied hat sein eigenes Profil. Der Assistent kennt Namen, Rolle und passt Ton und Inhalte an — kindgerecht für die Kleinen.",
   },
   {
-    icon: "🏠",
+    icon: "home",
     title: "100 % lokal",
     text: "Die KI läuft über Ollama auf eurem eigenen Rechner. Keine Cloud, keine Abos, keine Daten verlassen das Haus.",
   },
   {
-    icon: "🎙️",
+    icon: "mic",
     title: "Sprachsteuerung",
     text: "Sprechen statt tippen — heute per Browser-Spracherkennung, bald mit lokalem Whisper für echte Privatsphäre.",
   },
   {
-    icon: "📷",
+    icon: "camera",
     title: "Kameras & Sicherheit",
     text: "Vorbereitet für IP-Kameras über go2rtc/Frigate: Live-Ansicht und KI-Ereignisse direkt im Dashboard.",
   },
   {
-    icon: "📱",
+    icon: "phone",
     title: "Als App installierbar",
     text: "PWA — auf jedem Handy, Tablet oder Desktop installierbar. Ein Tipp auf „Zum Startbildschirm hinzufügen“ genügt.",
   },
   {
-    icon: "🔒",
+    icon: "shield",
     title: "Privat by Design",
     text: "Gespräche bleiben auf euren Geräten. Offene Architektur, offener Code — ihr wisst genau, was läuft.",
   },
@@ -152,12 +169,14 @@ export default function Landing() {
           Von Oma bis Kind — HeimGeist spricht mit jedem so, wie es passt.
         </p>
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((f) => (
+          {features.map((f) => {
+            const Icon = FEATURE_ICON[f.icon];
+            return (
             <div
               key={f.title}
               className="glass group rounded-2xl p-6 transition duration-300 hover:-translate-y-1 hover:border-ember-500/40"
             >
-              <span className="text-3xl">{f.icon}</span>
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-night-700 text-ember-400"><Icon width={22} height={22} /></span>
               <h3 className="mt-4 font-display text-xl font-semibold">
                 {f.title}
               </h3>
@@ -165,7 +184,8 @@ export default function Landing() {
                 {f.text}
               </p>
             </div>
-          ))}
+          );
+          })}
         </div>
       </section>
 

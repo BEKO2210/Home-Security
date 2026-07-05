@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { IconHome, IconChat, IconUsers, IconSettings } from "@/components/icons";
 
 const tabs = [
-  { href: "/app/home", icon: "🏠", label: "Zuhause" },
-  { href: "/app/chat", icon: "💬", label: "Chat" },
-  { href: "/app", icon: "👥", label: "Profile" },
-  { href: "/app/settings", icon: "⚙️", label: "Mehr" },
+  { href: "/app/home", icon: IconHome, label: "Zuhause" },
+  { href: "/app/chat", icon: IconChat, label: "Chat" },
+  { href: "/app", icon: IconUsers, label: "Profile" },
+  { href: "/app/settings", icon: IconSettings, label: "Mehr" },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -23,15 +24,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {tabs.map((t) => {
             const active =
               t.href === "/app" ? pathname === "/app" : pathname.startsWith(t.href);
+            const Icon = t.icon;
             return (
               <Link
                 key={t.href}
                 href={t.href}
-                className={`flex flex-col items-center gap-0.5 px-5 py-3 text-[11px] transition ${
+                className={`flex flex-col items-center gap-1 px-5 py-3 text-[11px] transition ${
                   active ? "text-ember-400" : "text-mist-500 hover:text-mist-300"
                 }`}
               >
-                <span className="text-xl">{t.icon}</span>
+                <Icon width={21} height={21} />
                 {t.label}
               </Link>
             );
