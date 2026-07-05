@@ -57,6 +57,10 @@ export async function addMemory(
   return fact;
 }
 
+export async function clearMemories(profileId: string): Promise<void> {
+  await persist(profileId, []);
+}
+
 export async function deleteMemory(
   profileId: string,
   factId: string,

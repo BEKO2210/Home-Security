@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MODULES } from "@/lib/modules";
-import { store, Profile, profileColor } from "@/lib/store";
+import { store, Profile } from "@/lib/store";
+import Avatar from "@/components/avatar";
 import { pickBestModel } from "@/lib/models";
 import {
   IconChat,
@@ -57,12 +58,7 @@ export default function Home() {
   return (
     <main>
       <div className="rise rise-1 flex items-center gap-3">
-        <span
-          className="flex h-11 w-11 items-center justify-center rounded-full font-display text-xl font-semibold text-night-950"
-          style={{ background: profileColor(profile) }}
-        >
-          {profile.name[0]?.toUpperCase()}
-        </span>
+        <Avatar profile={profile} size={44} />
         <div>
           <h1 className="font-display text-2xl font-semibold sm:text-3xl">
             {greeting}, <span className="text-ember-400">{profile.name}</span>

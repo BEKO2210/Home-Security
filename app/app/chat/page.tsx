@@ -4,13 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import {
-  store,
-  Profile,
-  ChatMessage,
-  systemPrompt,
-  profileColor,
-} from "@/lib/store";
+import { store, Profile, ChatMessage, systemPrompt } from "@/lib/store";
+import Avatar from "@/components/avatar";
 import { pickBestModel } from "@/lib/models";
 import { createVoiceAdapter, VoiceAdapter } from "@/lib/voice";
 import {
@@ -111,7 +106,7 @@ export default function Chat() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: model || "llama3.1:8b",
-          system: systemPrompt(profile),
+          system: systemPrompt(profile, store.profiles()),
           messages: history,
           ollamaUrl: settings.ollamaUrl,
           profileId: profile.id,
@@ -244,12 +239,7 @@ export default function Chat() {
     <main className="flex flex-1 flex-col">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span
-            className="flex h-10 w-10 items-center justify-center rounded-full font-display text-lg font-semibold text-night-950"
-            style={{ background: profileColor(profile) }}
-          >
-            {profile.name[0]?.toUpperCase()}
-          </span>
+          <Avatar profile={profile} size={40} />
           <div>
             <h1 className="font-display text-xl font-semibold leading-tight">
               Familien-Chat

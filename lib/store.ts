@@ -11,9 +11,26 @@ export interface Profile {
   emoji?: string;
   /** Gehashte 4-stellige PIN (optional). Kindersicherung, keine Kryptografie. */
   pinHash?: string;
+  /** Profilbild als kleines Daten-URL-JPEG (~10 KB), lokal auf dem Gerät. */
+  photo?: string;
+  /** Beziehungen zu anderen Profilen: "ist <label> von <toId>". */
+  relations?: { toId: string; label: string }[];
   role: Role;
   createdAt: number;
 }
+
+export const RELATION_LABELS = [
+  "Mutter",
+  "Vater",
+  "Sohn",
+  "Tochter",
+  "Oma",
+  "Opa",
+  "Enkelkind",
+  "Bruder",
+  "Schwester",
+  "Partner/in",
+] as const;
 
 /** djb2 — bewusst simpel: hält Geschwister raus, ist kein Sicherheitsfeature.
  *  (crypto.subtle steht über HTTP im Heimnetz nicht zur Verfügung.) */
@@ -130,8 +147,23 @@ export const ROLE_LABEL: Record<Role, string> = {
   gast: "Gast",
 };
 
-export function systemPrompt(profile: Profile): string {
-  const base = `Du bist HeimGeist, der freundliche KI-Home-Assistent der Familie. Du sprichst Deutsch, bist warmherzig, hilfsbereit und antwortest kompakt. Du sprichst gerade mit ${profile.name} (${ROLE_LABEL[profile.role]}).`;
+export function systemPrompt(profile: Profile, allProfiles?: Profile[]): string {
+  let relationText = "";
+  const others = allProfiles ?? [];
+  const nameOf = (id: string) => others.find((p) => p.id === id)?.name;
+  const lines: string[] = [];
+  for (const p of others) {
+    for (const rel of p.relations ?? []) {
+      const target = nameOf(rel.toId);
+      if (target) lines.push(`${p.name} ist ${rel.label} von ${target}.`);
+    }
+  }
+  if (others.length > 1) {
+    const names = others.map((p) => `${p.name} (${ROLE_LABEL[p.role]})`).join(", ");
+    relationText = ` Zur Familie gehören: ${names}.`;
+    if (lines.length) relationText += ` Beziehungen: ${lines.join(" ")}`;
+  }
+  const base = `Du bist HeimGeist, der freundliche KI-Home-Assistent der Familie. Du sprichst Deutsch, bist warmherzig, hilfsbereit und antwortest kompakt. Du sprichst gerade mit ${profile.name} (${ROLE_LABEL[profile.role]}).${relationText}`;
   if (profile.role === "kind") {
     return `${base} WICHTIG: ${profile.name} ist ein Kind. Antworte kindgerecht, einfach, positiv und absolut sicher. Keine Gewalt, keine Erwachsenenthemen, keine gefährlichen Anleitungen. Bei heiklen Fragen freundlich an die Eltern verweisen.`;
   }
