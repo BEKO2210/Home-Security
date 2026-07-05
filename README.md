@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏠 HeimGeist — Euer Zuhause. Eure KI.
 
-## Getting Started
+Privater KI-Home-Assistent für die ganze Familie — als installierbare **PWA**, komplett **lokal** über [Ollama](https://ollama.com). Keine Cloud, keine Abos, keine Daten verlassen das Haus.
 
-First, run the development server:
+![HeimGeist](public/hero.png)
+
+## Features
+
+- 💬 **Familien-Chat** mit lokaler KI (Streaming, schnell)
+- 👨‍👩‍👧‍👦 **Familienprofile** — kindgerechte Antworten für Kinder, geduldige für Großeltern
+- 🎙️ **Sprachsteuerung** per Browser-Spracherkennung (de-DE), Whisper-ready
+- 🏠 **Dashboard** mit Modul-Registry — vorbereitet für Kameras & Automationen
+- 📱 **PWA** — auf Handy/Tablet/Desktop installierbar, offline-fähige Shell
+- 🔒 **Privat by Design** — Chats bleiben im localStorage des Geräts
+
+## Schnellstart (Heimnetz)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Voraussetzung: Ollama läuft (z. B. auf pop-os.local)
+ollama serve
+ollama pull llama3.1:8b
+
+npm install
+npm run dev          # Entwicklung
+# oder produktiv:
+npm run build && npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Dann im Heimnetz öffnen (z. B. `http://pop-os.local:3000`), Profil anlegen, unter **Einstellungen** Ollama-Adresse testen und Modell wählen.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Konfiguration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Default | Zweck |
+|---|---|---|
+| `OLLAMA_BASE_URL` | `http://pop-os.local:11434` | Ollama-Server (serverseitiger Proxy) |
 
-## Learn More
+Ohne erreichbares Ollama läuft die App im **Demo-Modus** (z. B. auf Vercel) — ideal als Landing Page + Vorschau.
 
-To learn more about Next.js, take a look at the following resources:
+## Roadmap
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. ✅ **Phase 1:** Familien-Chat, Profile, Dashboard, PWA
+2. 🔜 **Phase 2:** Whisper-Sprachsteuerung (faster-whisper, lokal)
+3. 🔜 **Phase 3:** Kameras (go2rtc / Frigate)
+4. 🔜 **Phase 4:** Automationen (Home-Assistant-Bridge, Function-Calling)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Details: [ARCHITECTURE.md](ARCHITECTURE.md)
 
-## Deploy on Vercel
+## Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · TypeScript · Ollama
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+Gebaut mit Claude Code + RuFlo-Swarm · Hero-Bild: Higgsfield AI

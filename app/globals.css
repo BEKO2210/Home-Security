@@ -1,26 +1,186 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display), "Georgia", serif;
+  --font-body: var(--font-body), system-ui, sans-serif;
+  --font-mono: var(--font-mono), monospace;
+
+  --color-night-950: #070c18;
+  --color-night-900: #0b1120;
+  --color-night-800: #111a30;
+  --color-night-700: #1a2642;
+  --color-night-600: #263659;
+
+  --color-ember-300: #ffd08a;
+  --color-ember-400: #ffb454;
+  --color-ember-500: #f5a524;
+  --color-ember-600: #d98b0f;
+
+  --color-mist-100: #eef2fb;
+  --color-mist-300: #c3cde4;
+  --color-mist-500: #8593b4;
+
+  --color-sage-400: #2dd4bf;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-night-900);
+  color: var(--color-mist-100);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+}
+
+/* ---- atmosphere ---- */
+
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.aurora::before,
+.aurora::after {
+  content: "";
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+}
+.aurora::before {
+  width: 42rem;
+  height: 42rem;
+  top: -14rem;
+  right: -10rem;
+  background: radial-gradient(
+    circle,
+    rgba(245, 165, 36, 0.22),
+    transparent 65%
+  );
+  animation: drift 14s ease-in-out infinite alternate;
+}
+.aurora::after {
+  width: 36rem;
+  height: 36rem;
+  bottom: -12rem;
+  left: -8rem;
+  background: radial-gradient(
+    circle,
+    rgba(45, 212, 191, 0.12),
+    transparent 65%
+  );
+  animation: drift 18s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-3rem, 2.5rem, 0) scale(1.12);
+  }
+}
+
+/* ---- surfaces ---- */
+
+.glass {
+  background: linear-gradient(
+    160deg,
+    rgba(26, 38, 66, 0.72),
+    rgba(17, 26, 48, 0.55)
+  );
+  border: 1px solid rgba(195, 205, 228, 0.12);
+  backdrop-filter: blur(14px);
+}
+
+.glow-ring {
+  box-shadow:
+    0 0 0 1px rgba(245, 165, 36, 0.25),
+    0 0 32px rgba(245, 165, 36, 0.12);
+}
+
+/* ---- staggered entrance ---- */
+
+.rise {
+  opacity: 0;
+  transform: translateY(18px);
+  animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.rise-1 { animation-delay: 0.05s; }
+.rise-2 { animation-delay: 0.16s; }
+.rise-3 { animation-delay: 0.27s; }
+.rise-4 { animation-delay: 0.38s; }
+.rise-5 { animation-delay: 0.49s; }
+
+@keyframes rise {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- chat ---- */
+
+.bubble-in {
+  animation: bubble 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes bubble {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+.thinking span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--color-ember-400);
+  margin-right: 4px;
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+.thinking span:nth-child(2) { animation-delay: 0.15s; }
+.thinking span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* ---- voice ---- */
+
+.mic-live {
+  animation: mic-pulse 1.4s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 165, 36, 0.45); }
+  50% { box-shadow: 0 0 0 14px rgba(245, 165, 36, 0); }
+}
+
+::selection {
+  background: rgba(245, 165, 36, 0.35);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-night-600);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }
