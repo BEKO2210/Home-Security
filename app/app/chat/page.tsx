@@ -21,14 +21,37 @@ import {
   IconRefresh,
   IconCheck,
   IconLogo,
+  IconTrash,
+  IconSpeaker,
+  IconShare,
 } from "@/components/icons";
 
-const STARTERS = [
-  "Was kochen wir heute Abend?",
-  "Hilf mir bei den Hausaufgaben",
-  "Erzähl uns einen Witz",
-  "Plane unser Wochenende",
-];
+const STARTERS: Record<string, string[]> = {
+  kind: [
+    "Erzähl mir einen Witz",
+    "Quiz mich in Erdkunde",
+    "Hilf mir bei den Hausaufgaben",
+    "Erzähl eine Gute-Nacht-Geschichte",
+  ],
+  grosseltern: [
+    "Erklär mir mein Handy",
+    "Was kann ich heute kochen?",
+    "Erklär mir die Nachrichten einfach",
+    "Erzähl mir etwas Interessantes",
+  ],
+  eltern: [
+    "Was kochen wir heute Abend?",
+    "Plane unser Wochenende",
+    "Schreib eine Einkaufsliste",
+    "Fass mir kurz die Nachrichten zusammen",
+  ],
+  gast: [
+    "Was kannst du alles?",
+    "Erzähl uns einen Witz",
+    "Empfiehl uns einen Film",
+    "Was kochen wir heute Abend?",
+  ],
+};
 
 export default function Chat() {
   const router = useRouter();
@@ -40,6 +63,7 @@ export default function Chat() {
   const [voiceOk, setVoiceOk] = useState(false);
   const [model, setModel] = useState("");
   const [copied, setCopied] = useState<number | null>(null);
+  const [speaking, setSpeaking] = useState<number | null>(null);
   const voiceRef = useRef<VoiceAdapter | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -162,6 +186,37 @@ export default function Chat() {
     }
   }
 
+  function removeMessage(i: number) {
+    if (!profile || busy) return;
+    const next = messages.filter((_, idx) => idx !== i);
+    setMessages(next);
+    store.saveChat(profile.id, next);
+  }
+
+  function speak(i: number, text: string) {
+    if (typeof speechSynthesis === "undefined") return;
+    if (speaking === i) {
+      speechSynthesis.cancel();
+      setSpeaking(null);
+      return;
+    }
+    speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(
+      text.replace(/[*_#`>]/g, "").slice(0, 2000),
+    );
+    utter.lang = "de-DE";
+    utter.onend = () => setSpeaking(null);
+    utter.onerror = () => setSpeaking(null);
+    setSpeaking(i);
+    speechSynthesis.speak(utter);
+  }
+
+  function share(text: string) {
+    if (navigator.share) {
+      navigator.share({ text }).catch(() => {});
+    }
+  }
+
   function toggleVoice() {
     const voice = voiceRef.current;
     if (!voice) return;
@@ -226,7 +281,7 @@ export default function Chat() {
             </p>
             <p className="mt-1 text-sm text-mist-300">Womit kann ich helfen?</p>
             <div className="mt-5 flex flex-wrap justify-center gap-2">
-              {STARTERS.map((s) => (
+              {(STARTERS[profile.role] ?? STARTERS.gast).map((s) => (
                 <button
                   key={s}
                   onClick={() => send(s)}
@@ -245,8 +300,19 @@ export default function Chat() {
             className={`bubble-in flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
           >
             {m.role === "user" ? (
-              <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-ember-500 px-4 py-3 text-[15px] leading-relaxed text-night-950">
-                {m.content}
+              <div className="group flex items-center gap-1.5">
+                {!busy && (
+                  <button
+                    onClick={() => removeMessage(i)}
+                    aria-label="Nachricht löschen"
+                    className="rounded-lg p-1.5 text-mist-500 opacity-0 transition group-hover:opacity-100 hover:bg-night-700 hover:text-red-400"
+                  >
+                    <IconTrash width={15} height={15} />
+                  </button>
+                )}
+                <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-ember-500 px-4 py-3 text-[15px] leading-relaxed text-night-950">
+                  {m.content}
+                </div>
               </div>
             ) : (
               <div className="group max-w-[85%]">
@@ -258,6 +324,17 @@ export default function Chat() {
                 {!busy && m.content && (
                   <div className="mt-1 flex gap-1 opacity-0 transition group-hover:opacity-100">
                     <button
+                      onClick={() => speak(i, m.content)}
+                      aria-label={speaking === i ? "Vorlesen stoppen" : "Vorlesen"}
+                      className={`rounded-lg p-1.5 hover:bg-night-700 ${
+                        speaking === i
+                          ? "text-ember-400"
+                          : "text-mist-500 hover:text-mist-300"
+                      }`}
+                    >
+                      <IconSpeaker width={15} height={15} />
+                    </button>
+                    <button
                       onClick={() => copy(i, m.content)}
                       aria-label="Kopieren"
                       className="rounded-lg p-1.5 text-mist-500 hover:bg-night-700 hover:text-mist-300"
@@ -267,6 +344,22 @@ export default function Chat() {
                       ) : (
                         <IconCopy width={15} height={15} />
                       )}
+                    </button>
+                    {typeof navigator !== "undefined" && "share" in navigator && (
+                      <button
+                        onClick={() => share(m.content)}
+                        aria-label="Teilen"
+                        className="rounded-lg p-1.5 text-mist-500 hover:bg-night-700 hover:text-mist-300"
+                      >
+                        <IconShare width={15} height={15} />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => removeMessage(i)}
+                      aria-label="Nachricht löschen"
+                      className="rounded-lg p-1.5 text-mist-500 hover:bg-night-700 hover:text-red-400"
+                    >
+                      <IconTrash width={15} height={15} />
                     </button>
                     {i === messages.length - 1 && (
                       <button

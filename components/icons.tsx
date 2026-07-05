@@ -139,6 +139,29 @@ export const IconCheck = (p: P) => (
   </svg>
 );
 
+export const IconTrash = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4 6.5h16M9.5 6.5V4.8A1.3 1.3 0 0 1 10.8 3.5h2.4a1.3 1.3 0 0 1 1.3 1.3v1.7M6.5 6.5 7.4 20a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-13.5" />
+    <path d="M10 10.5v7M14 10.5v7" />
+  </svg>
+);
+
+export const IconSpeaker = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z" />
+    <path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11" />
+  </svg>
+);
+
+export const IconShare = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="6" cy="12" r="2.5" />
+    <circle cx="17.5" cy="5.5" r="2.5" />
+    <circle cx="17.5" cy="18.5" r="2.5" />
+    <path d="m8.3 10.8 7-4M8.3 13.2l7 4" />
+  </svg>
+);
+
 export const IconLogo = (p: P) => (
   <svg {...base(p)}>
     <path d="M12 3 3.5 10v9a1 1 0 0 0 1 1h5v-5a2.5 2.5 0 0 1 5 0v5h5a1 1 0 0 0 1-1v-9L12 3Z" />

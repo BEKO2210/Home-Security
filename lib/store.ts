@@ -9,8 +9,21 @@ export interface Profile {
   color?: string;
   /** Altbestand aus v1-Profilen; wird nicht mehr angezeigt. */
   emoji?: string;
+  /** Gehashte 4-stellige PIN (optional). Kindersicherung, keine Kryptografie. */
+  pinHash?: string;
   role: Role;
   createdAt: number;
+}
+
+/** djb2 — bewusst simpel: hält Geschwister raus, ist kein Sicherheitsfeature.
+ *  (crypto.subtle steht über HTTP im Heimnetz nicht zur Verfügung.) */
+export function hashPin(pin: string): string {
+  let h = 5381;
+  const salted = `heimgeist:${pin}`;
+  for (let i = 0; i < salted.length; i++) {
+    h = ((h << 5) + h + salted.charCodeAt(i)) >>> 0;
+  }
+  return h.toString(36);
 }
 
 export const PROFILE_COLORS = [
@@ -37,6 +50,15 @@ export interface Settings {
   model: string;
   /** Internet & Werkzeuge (Websuche, Downloads, Gedächtnis) — Default an. */
   tools?: boolean;
+  /** Große Schrift für bessere Lesbarkeit (Großeltern). */
+  fontScale?: "normal" | "gross";
+}
+
+/** Wendet die Schriftgrößen-Einstellung auf die Seite an (Zoom, Chromium-Familie). */
+export function applyFontScale(scale?: "normal" | "gross") {
+  if (typeof document === "undefined") return;
+  (document.body.style as CSSStyleDeclaration & { zoom?: string }).zoom =
+    scale === "gross" ? "1.18" : "";
 }
 
 export interface ChatMessage {

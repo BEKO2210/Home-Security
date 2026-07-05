@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { store, Settings, DEFAULT_SETTINGS, Profile } from "@/lib/store";
+import {
+  store,
+  applyFontScale,
+  Settings,
+  DEFAULT_SETTINGS,
+  Profile,
+} from "@/lib/store";
 import { pickBestModel } from "@/lib/models";
 import { IconX } from "@/components/icons";
 
@@ -171,6 +177,37 @@ export default function SettingsPage() {
             <span
               className={`absolute top-1 h-5 w-5 rounded-full bg-mist-100 transition-all ${
                 settings.tools !== false ? "left-6" : "left-1"
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      <div className="glass rise rise-3 mt-5 rounded-2xl p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display text-xl font-semibold">Große Schrift</h2>
+            <p className="mt-1 text-sm text-mist-300">
+              Bessere Lesbarkeit — alles etwas größer.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              const next: Settings = {
+                ...settings,
+                fontScale: settings.fontScale === "gross" ? "normal" : "gross",
+              };
+              save(next);
+              applyFontScale(next.fontScale);
+            }}
+            aria-label="Große Schrift umschalten"
+            className={`relative h-7 w-12 shrink-0 rounded-full transition ${
+              settings.fontScale === "gross" ? "bg-ember-500" : "bg-night-600"
+            }`}
+          >
+            <span
+              className={`absolute top-1 h-5 w-5 rounded-full bg-mist-100 transition-all ${
+                settings.fontScale === "gross" ? "left-6" : "left-1"
               }`}
             />
           </button>

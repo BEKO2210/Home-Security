@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   store,
   uid,
+  hashPin,
   Profile,
   Role,
   ROLE_LABEL,
@@ -12,6 +13,7 @@ import {
   profileColor,
 } from "@/lib/store";
 import { IconPlus, IconX } from "@/components/icons";
+import PinPad from "@/components/pinpad";
 
 const ROLES: Role[] = ["eltern", "kind", "grosseltern", "gast"];
 
@@ -23,24 +25,33 @@ export default function Profiles() {
   const [name, setName] = useState("");
   const [color, setColor] = useState(PROFILE_COLORS[0]);
   const [role, setRole] = useState<Role>("eltern");
+  const [pin, setPin] = useState("");
+  const [locked, setLocked] = useState<Profile | null>(null);
 
   useEffect(() => {
     setProfiles(store.profiles());
     setActiveId(store.activeProfileId());
   }, []);
 
-  function selectProfile(p: Profile) {
+  function unlock(p: Profile) {
     store.setActiveProfile(p.id);
     router.push("/app/home");
   }
 
+  function selectProfile(p: Profile) {
+    if (p.pinHash) setLocked(p);
+    else unlock(p);
+  }
+
   function addProfile() {
     if (!name.trim()) return;
+    if (pin && pin.length !== 4) return;
     const p: Profile = {
       id: uid(),
       name: name.trim(),
       color,
       role,
+      ...(pin ? { pinHash: hashPin(pin) } : {}),
       createdAt: Date.now(),
     };
     const next = [...profiles, p];
@@ -48,7 +59,8 @@ export default function Profiles() {
     store.saveProfiles(next);
     setCreating(false);
     setName("");
-    selectProfile(p);
+    setPin("");
+    unlock(p);
   }
 
   function removeProfile(id: string) {
@@ -136,6 +148,15 @@ export default function Profiles() {
               />
             ))}
           </div>
+          <input
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={4}
+            placeholder="PIN (optional, 4 Ziffern)"
+            className="mt-3 w-full rounded-xl border border-night-600 bg-night-800 px-4 py-3 font-mono tracking-[0.5em] outline-none placeholder:tracking-normal placeholder:text-mist-500 focus:border-ember-500"
+          />
           <div className="mt-4 flex flex-wrap gap-2">
             {ROLES.map((r) => (
               <button
@@ -154,7 +175,7 @@ export default function Profiles() {
           <div className="mt-6 flex gap-3">
             <button
               onClick={addProfile}
-              disabled={!name.trim()}
+              disabled={!name.trim() || (pin.length > 0 && pin.length !== 4)}
               className="rounded-full bg-ember-500 px-6 py-2.5 font-medium text-night-950 transition hover:bg-ember-400 disabled:opacity-40"
             >
               Loslegen
@@ -167,6 +188,16 @@ export default function Profiles() {
             </button>
           </div>
         </div>
+      )}
+
+      {locked && (
+        <PinPad
+          title={locked.name}
+          color={profileColor(locked)}
+          verify={(p) => hashPin(p) === locked.pinHash}
+          onSuccess={() => unlock(locked)}
+          onCancel={() => setLocked(null)}
+        />
       )}
     </main>
   );

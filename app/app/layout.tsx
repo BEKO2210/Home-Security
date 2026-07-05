@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { store, applyFontScale } from "@/lib/store";
 import { IconHome, IconChat, IconUsers, IconSettings } from "@/components/icons";
 
 const tabs = [
@@ -13,6 +15,9 @@ const tabs = [
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  useEffect(() => {
+    applyFontScale(store.settings().fontScale);
+  }, []);
   return (
     <div className="grain relative flex min-h-dvh flex-col">
       <div className="aurora" aria-hidden />
