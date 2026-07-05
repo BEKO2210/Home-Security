@@ -32,7 +32,7 @@ const features = [
   {
     icon: "mic",
     title: "Sprachsteuerung",
-    text: "Sprechen statt tippen — heute per Browser-Spracherkennung, bald mit lokalem Whisper für echte Privatsphäre.",
+    text: "Sprechen statt tippen — mit lokalem Whisper auf eurer eigenen GPU. Kein Audio verlässt das Haus.",
   },
   {
     icon: "camera",
@@ -61,8 +61,8 @@ const roadmap = [
   {
     phase: "Phase 2",
     title: "Whisper-Sprachsteuerung",
-    text: "Lokale Speech-to-Text-Engine (faster-whisper) als Voice-Adapter.",
-    status: "geplant",
+    text: "Lokale Speech-to-Text-Engine (faster-whisper, GPU) mit HTTPS im Heimnetz.",
+    status: "live",
   },
   {
     phase: "Phase 3",

@@ -32,7 +32,7 @@ export const MODULES: HomeModule[] = [
     id: "voice",
     name: "Sprachsteuerung",
     icon: "wave",
-    description: "Browser-Spracherkennung im Chat aktiv. Whisper-Engine folgt in Phase 2.",
+    description: "Whisper-Spracherkennung lokal auf der GPU — aktiviert sich automatisch, sobald der Container läuft; sonst Browser-Fallback.",
     status: "aktiv",
     href: "/app/chat",
     phase: 2,

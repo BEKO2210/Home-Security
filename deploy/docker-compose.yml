@@ -1,0 +1,41 @@
+# HeimGeist Zusatzdienste: Whisper-Spracherkennung + HTTPS-Proxy
+#
+#   cd deploy && docker compose up -d
+#
+# - whisper: faster-whisper hinter OpenAI-kompatibler API (Port 9000, nur localhost)
+# - caddy:   HTTPS für das Heimnetz (Port 3443 -> HeimGeist :3100), selbstsigniert.
+#            Noetig, damit Handys das Mikrofon freigeben (Secure Context).
+services:
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest-gpu
+    container_name: heimgeist-whisper
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9000:9000"
+    environment:
+      - ASR_MODEL=small
+      - ASR_ENGINE=faster_whisper
+    volumes:
+      - whisper-cache:/root/.cache
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: heimgeist-caddy
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  whisper-cache:
+  caddy-data:
+  caddy-config:

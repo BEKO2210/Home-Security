@@ -52,8 +52,10 @@ export default function Chat() {
     }
     setProfile(p);
     setMessages(store.chat(p.id));
-    voiceRef.current = createVoiceAdapter();
-    setVoiceOk(voiceRef.current.available());
+    createVoiceAdapter().then((v) => {
+      voiceRef.current = v;
+      setVoiceOk(v.available());
+    });
 
     const settings = store.settings();
     if (settings.model) {

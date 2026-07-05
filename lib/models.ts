@@ -14,7 +14,7 @@ const FAMILY_BONUS: [RegExp, number][] = [
   [/gemma[234]/i, 25],
   [/qwen2\.5/i, 25],
   [/mistral/i, 20],
-  [/phi4/i, 15],
+  [/phi4/i, -10], // rollenspielt bei Tools statt sie zu nutzen
   [/german/i, 12],
 ];
 

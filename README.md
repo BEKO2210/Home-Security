@@ -30,18 +30,39 @@ npm run build && npm start
 
 Dann im Heimnetz öffnen (z. B. `http://pop-os.local:3000`), Profil anlegen, unter **Einstellungen** Ollama-Adresse testen und Modell wählen.
 
+## Whisper-Sprachsteuerung + HTTPS (Phase 2)
+
+```bash
+# einmalig: Docker-Gruppe (danach ab- und wieder anmelden)
+sudo usermod -aG docker $USER
+
+cd deploy && docker compose up -d
+```
+
+Startet zwei Container:
+- **whisper** — faster-whisper (Modell `small`) auf der GPU, nur via localhost:9000
+- **caddy** — HTTPS-Proxy fürs Heimnetz: `https://pop-os.local:3443` (selbstsigniert;
+  Zertifikatswarnung einmal bestätigen). HTTPS ist Pflicht, damit Browser das
+  Mikrofon freigeben.
+
+Die App erkennt den Whisper-Server automatisch (`/api/transcribe`) und nutzt
+sonst die Browser-Spracherkennung. Smoke-Test: `./scripts/smoke.sh`
+
 ## Konfiguration
 
 | Variable | Default | Zweck |
 |---|---|---|
-| `OLLAMA_BASE_URL` | `http://pop-os.local:11434` | Ollama-Server (serverseitiger Proxy) |
+| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama-Server (serverseitiger Proxy) |
+| `WHISPER_BASE_URL` | `http://127.0.0.1:9000` | faster-whisper-Server |
+| `HEIMGEIST_DOWNLOAD_DIR` | `~/Downloads` | Zielordner für download_file |
+| `HEIMGEIST_DATA_DIR` | `./.heimgeist` | Langzeitgedächtnis-Ablage |
 
 Ohne erreichbares Ollama läuft die App im **Demo-Modus** (z. B. auf Vercel) — ideal als Landing Page + Vorschau.
 
 ## Roadmap
 
 1. ✅ **Phase 1:** Familien-Chat, Profile, Internet-Werkzeuge, Langzeitgedächtnis, Dashboard, PWA
-2. 🔜 **Phase 2:** Whisper-Sprachsteuerung (faster-whisper, lokal)
+2. ✅ **Phase 2:** Whisper-Sprachsteuerung (faster-whisper, GPU) + HTTPS im Heimnetz
 3. 🔜 **Phase 3:** Kameras (go2rtc / Frigate)
 4. 🔜 **Phase 4:** Automationen (Home-Assistant-Bridge, Function-Calling)
 

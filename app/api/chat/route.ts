@@ -99,6 +99,47 @@ function createThinkFilter() {
   };
 }
 
+/** Manche Modelle (z. B. phi4-mini) können kein natives Tool-Calling und
+ *  schreiben stattdessen JSON wie [{"name":"web_search","parameters":{…}}]
+ *  in die Antwort. Das hier erkennt solche Antworten und macht daraus
+ *  echte Tool-Aufrufe. */
+function parseInlineToolCalls(content: string): ToolCall[] | null {
+  const text = content.replace(/<\|[^|]{0,24}\|>/g, "").trim();
+  const start = text.search(/[[{]/);
+  if (start === -1 || start > 4) return null;
+  // JSON-Ende suchen (Klammern zählen)
+  let depth = 0;
+  let end = -1;
+  for (let i = start; i < text.length; i++) {
+    const c = text[i];
+    if (c === "[" || c === "{") depth++;
+    else if (c === "]" || c === "}") {
+      depth--;
+      if (depth === 0) {
+        end = i + 1;
+        break;
+      }
+    }
+  }
+  if (end === -1) return null;
+  try {
+    const parsed = JSON.parse(text.slice(start, end));
+    const arr = Array.isArray(parsed) ? parsed : [parsed];
+    const calls: ToolCall[] = [];
+    for (const item of arr) {
+      const name = item?.name ?? item?.function?.name;
+      const args =
+        item?.parameters ?? item?.arguments ?? item?.function?.arguments ?? {};
+      if (typeof name === "string" && name && typeof args === "object") {
+        calls.push({ function: { name, arguments: args } });
+      }
+    }
+    return calls.length ? calls : null;
+  } catch {
+    return null;
+  }
+}
+
 async function callOllama(
   base: string,
   model: string,
@@ -108,7 +149,18 @@ async function callOllama(
   return fetch(`${base}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, stream: true, messages, ...(tools ? { tools } : {}) }),
+    body: JSON.stringify({
+      model,
+      stream: true,
+      messages,
+      // gegen leckende Chat-Template-Tokens (phi4 & Co.)
+      options: {
+        stop: ["<|user|>", "<|assistant|>", "<|end|>"],
+        // stabilere, weniger fantasievolle Antworten für Familien-Assistent
+        temperature: 0.4,
+      },
+      ...(tools ? { tools } : {}),
+    }),
     signal: AbortSignal.timeout(180_000),
   });
 }
@@ -189,6 +241,29 @@ export async function POST(req: NextRequest) {
           let content = "";
           const toolCalls: ToolCall[] = [];
 
+          // Sieht die Antwort wie Inline-Tool-JSON aus, halten wir sie
+          // zurück, statt sie zu streamen ("hold"); sonst normal streamen.
+          const st = { mode: "unknown" as "unknown" | "stream" | "hold", held: "" };
+          const emit = (raw: string) => {
+            const visible = stripThink(raw).replace(/<\|[^|]{0,24}\|>/g, "");
+            if (!visible) return;
+            if (st.mode === "stream") {
+              send(visible);
+              return;
+            }
+            st.held += visible;
+            if (st.mode === "unknown") {
+              const first = st.held.trimStart()[0];
+              if (first === "[" || first === "{") {
+                st.mode = "hold";
+              } else if (first) {
+                st.mode = "stream";
+                send(st.held);
+                st.held = "";
+              }
+            }
+          };
+
           for (;;) {
             const { done, value } = await reader.read();
             if (done) break;
@@ -202,8 +277,7 @@ export async function POST(req: NextRequest) {
                 const token: string | undefined = json?.message?.content;
                 if (token) {
                   content += token;
-                  const visible = stripThink(token);
-                  if (visible) send(visible);
+                  emit(token);
                 }
                 const calls: ToolCall[] | undefined = json?.message?.tool_calls;
                 if (calls?.length) toolCalls.push(...calls);
@@ -213,7 +287,19 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          if (!toolCalls.length) break;
+          // Text-JSON-Tool-Aufrufe (Modelle ohne natives Tool-Calling)
+          if (!toolCalls.length && st.mode === "hold" && toolDefs) {
+            const inline = parseInlineToolCalls(content);
+            if (inline) {
+              toolCalls.push(...inline);
+              content = "";
+            }
+          }
+
+          if (!toolCalls.length) {
+            if (st.held) send(st.held); // war doch kein Tool-JSON
+            break;
+          }
 
           msgs.push({ role: "assistant", content, tool_calls: toolCalls });
           for (const call of toolCalls) {

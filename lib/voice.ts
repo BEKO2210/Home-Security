@@ -3,10 +3,13 @@
 /**
  * Voice input abstraction.
  *
- * Today: Web Speech API (works in Chrome/Edge, incl. Android).
- * Later: swap in a WhisperAdapter that records audio and POSTs it to a
- * local faster-whisper server — same interface, no UI changes needed.
- * See ARCHITECTURE.md → "Voice-Adapter".
+ * Two adapters, chosen at runtime by probing /api/transcribe:
+ * - WhisperAdapter (Phase 2, aktiv): MediaRecorder → POST /api/transcribe
+ *   → lokaler faster-whisper-Server. Beste Qualität, komplett privat.
+ * - BrowserSpeechAdapter (Fallback): Web Speech API (Chrome/Edge).
+ *
+ * Beide brauchen einen Secure Context (HTTPS) für Mikrofonzugriff —
+ * im Heimnetz liefert das der Caddy-Proxy (deploy/).
  */
 
 export interface VoiceAdapter {
@@ -30,6 +33,12 @@ function getRecognition(): SpeechRecognitionCtor | null {
   if (typeof window === "undefined") return null;
   const w = window as unknown as Record<string, unknown>;
   return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as SpeechRecognitionCtor | null;
+}
+
+function hasMic(): boolean {
+  return (
+    typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia
+  );
 }
 
 export class BrowserSpeechAdapter implements VoiceAdapter {
@@ -70,18 +79,82 @@ export class BrowserSpeechAdapter implements VoiceAdapter {
   }
 }
 
-/** Placeholder for Phase 2 — local Whisper STT. */
+/** Phase 2: lokale Whisper-Transkription über den Server-Proxy. */
 export class WhisperAdapter implements VoiceAdapter {
-  constructor(private endpoint: string) {}
+  private recorder: MediaRecorder | null = null;
+  private stream: MediaStream | null = null;
+  private cancelled = false;
+
   available(): boolean {
-    return false; // enabled once a faster-whisper server is configured
+    return hasMic() && typeof MediaRecorder !== "undefined";
   }
-  start(_onResult: (text: string, final: boolean) => void, onEnd: () => void) {
-    onEnd();
+
+  start(onResult: (text: string, final: boolean) => void, onEnd: () => void) {
+    this.cancelled = false;
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        this.stream = stream;
+        const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+          ? "audio/webm;codecs=opus"
+          : undefined;
+        const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : {});
+        const chunks: Blob[] = [];
+        rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+        rec.onstop = async () => {
+          stream.getTracks().forEach((t) => t.stop());
+          this.stream = null;
+          if (this.cancelled || !chunks.length) return onEnd();
+          onResult("… wird transkribiert …", false);
+          try {
+            const res = await fetch("/api/transcribe", {
+              method: "POST",
+              body: new Blob(chunks, { type: chunks[0].type }),
+            });
+            const data = await res.json();
+            const text = String(data.text ?? "").trim();
+            if (text) onResult(text, true);
+            else onResult("", false);
+          } catch {
+            onResult("", false);
+          }
+          onEnd();
+        };
+        rec.start();
+        this.recorder = rec;
+        // Sicherheitsnetz: nach 30 s automatisch stoppen
+        setTimeout(() => {
+          if (this.recorder === rec && rec.state === "recording") rec.stop();
+        }, 30_000);
+      })
+      .catch(() => onEnd());
   }
-  stop() {}
+
+  /** Zweiter Tipp auf den Mikrofon-Button beendet die Aufnahme → Transkription. */
+  stop() {
+    if (this.recorder?.state === "recording") {
+      this.recorder.stop();
+    } else {
+      this.cancelled = true;
+      this.stream?.getTracks().forEach((t) => t.stop());
+    }
+    this.recorder = null;
+  }
 }
 
-export function createVoiceAdapter(): VoiceAdapter {
+/** Whisper bevorzugen, wenn der lokale Server läuft; sonst Browser-Fallback. */
+export async function createVoiceAdapter(): Promise<VoiceAdapter> {
+  try {
+    const res = await fetch("/api/transcribe", {
+      signal: AbortSignal.timeout(2_500),
+    });
+    const data = await res.json();
+    if (data.online) {
+      const whisper = new WhisperAdapter();
+      if (whisper.available()) return whisper;
+    }
+  } catch {
+    /* Whisper-Server nicht da — Fallback */
+  }
   return new BrowserSpeechAdapter();
 }
