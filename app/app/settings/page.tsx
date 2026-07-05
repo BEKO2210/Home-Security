@@ -1,14 +1,30 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { store, Settings, DEFAULT_SETTINGS } from "@/lib/store";
+import { store, Settings, DEFAULT_SETTINGS, Profile } from "@/lib/store";
 import { pickBestModel } from "@/lib/models";
+import { IconX } from "@/components/icons";
+
+interface Fact {
+  id: string;
+  text: string;
+  createdAt: number;
+}
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [models, setModels] = useState<string[]>([]);
   const [online, setOnline] = useState<boolean | null>(null);
   const [saved, setSaved] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [facts, setFacts] = useState<Fact[]>([]);
+
+  const loadFacts = useCallback((profileId: string) => {
+    fetch(`/api/memory?profileId=${encodeURIComponent(profileId)}`)
+      .then((r) => r.json())
+      .then((d) => setFacts(d.facts ?? []))
+      .catch(() => setFacts([]));
+  }, []);
 
   const checkConnection = useCallback((url: string) => {
     setOnline(null);
@@ -25,7 +41,19 @@ export default function SettingsPage() {
     const s = store.settings();
     setSettings(s);
     checkConnection(s.ollamaUrl);
-  }, [checkConnection]);
+    const p = store.activeProfile();
+    setProfile(p);
+    if (p) loadFacts(p.id);
+  }, [checkConnection, loadFacts]);
+
+  function removeFact(id: string) {
+    if (!profile) return;
+    setFacts(facts.filter((f) => f.id !== id));
+    fetch(
+      `/api/memory?profileId=${encodeURIComponent(profile.id)}&factId=${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    ).catch(() => loadFacts(profile.id));
+  }
 
   function save(next: Settings) {
     setSettings(next);
@@ -123,7 +151,68 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <div className="glass rise rise-4 mt-5 rounded-2xl p-6">
+      <div className="glass rise rise-3 mt-5 rounded-2xl p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display text-xl font-semibold">
+              Internet & Werkzeuge
+            </h2>
+            <p className="mt-1 text-sm text-mist-300">
+              Websuche, Webseiten lesen, Downloads (nur Eltern) und Gedächtnis.
+            </p>
+          </div>
+          <button
+            onClick={() => save({ ...settings, tools: settings.tools === false })}
+            aria-label="Internet & Werkzeuge umschalten"
+            className={`relative h-7 w-12 shrink-0 rounded-full transition ${
+              settings.tools !== false ? "bg-ember-500" : "bg-night-600"
+            }`}
+          >
+            <span
+              className={`absolute top-1 h-5 w-5 rounded-full bg-mist-100 transition-all ${
+                settings.tools !== false ? "left-6" : "left-1"
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {profile && (
+        <div className="glass rise rise-4 mt-5 rounded-2xl p-6">
+          <h2 className="font-display text-xl font-semibold">
+            Gedächtnis von {profile.name}
+          </h2>
+          <p className="mt-1 text-sm text-mist-300">
+            Was sich HeimGeist dauerhaft gemerkt hat. Sag im Chat „Merk dir …“,
+            um etwas hinzuzufügen.
+          </p>
+          {facts.length === 0 ? (
+            <p className="mt-4 font-mono text-xs text-mist-500">
+              Noch keine Erinnerungen.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-2">
+              {facts.map((f) => (
+                <li
+                  key={f.id}
+                  className="flex items-start justify-between gap-3 rounded-xl bg-night-800 px-4 py-2.5 text-sm"
+                >
+                  <span className="text-mist-100">{f.text}</span>
+                  <button
+                    onClick={() => removeFact(f.id)}
+                    aria-label="Erinnerung löschen"
+                    className="mt-0.5 shrink-0 text-mist-500 transition hover:text-red-400"
+                  >
+                    <IconX width={14} height={14} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <div className="glass rise rise-5 mt-5 rounded-2xl p-6">
         <h2 className="font-display text-xl font-semibold">Als App installieren</h2>
         <p className="mt-1 text-sm leading-relaxed text-mist-300">
           Auf dem Handy im Browser-Menü{" "}
@@ -133,7 +222,7 @@ export default function SettingsPage() {
       </div>
 
       <p className="rise rise-5 mt-8 text-center font-mono text-xs text-mist-500">
-        HeimGeist · Phase 1 · Whisper & Kameras folgen
+        HeimGeist · Chat, Internet & Gedächtnis aktiv · Whisper & Kameras folgen
       </p>
     </main>
   );

@@ -35,6 +35,8 @@ export function profileColor(p: Profile): string {
 export interface Settings {
   ollamaUrl: string;
   model: string;
+  /** Internet & Werkzeuge (Websuche, Downloads, Gedächtnis) — Default an. */
+  tools?: boolean;
 }
 
 export interface ChatMessage {

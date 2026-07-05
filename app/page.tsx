@@ -21,13 +21,13 @@ const FEATURE_ICON: Record<string, typeof IconUsers> = {
 const features = [
   {
     icon: "users",
-    title: "Familienprofile",
-    text: "Jedes Familienmitglied hat sein eigenes Profil. Der Assistent kennt Namen, Rolle und passt Ton und Inhalte an — kindgerecht für die Kleinen.",
+    title: "Familienprofile mit Gedächtnis",
+    text: "Jedes Familienmitglied hat sein eigenes Profil samt Langzeitgedächtnis. Der Assistent kennt Namen, Rolle, Vorlieben — kindgerecht für die Kleinen.",
   },
   {
     icon: "home",
-    title: "100 % lokal",
-    text: "Die KI läuft über Ollama auf eurem eigenen Rechner. Keine Cloud, keine Abos, keine Daten verlassen das Haus.",
+    title: "Lokal — mit Internet-Zugriff",
+    text: "Die KI läuft über Ollama auf eurem eigenen Rechner und kann bei Bedarf im Web suchen, Seiten lesen und Dateien herunterladen.",
   },
   {
     icon: "mic",
@@ -55,7 +55,7 @@ const roadmap = [
   {
     phase: "Phase 1",
     title: "Familien-Chat & Profile",
-    text: "Chat mit lokaler KI, Profile für alle, Dashboard, PWA.",
+    text: "Lokale KI mit Websuche, Downloads, Langzeitgedächtnis pro Profil, Dashboard, PWA.",
     status: "live",
   },
   {

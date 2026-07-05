@@ -89,7 +89,8 @@ export default function Chat() {
           messages: history,
           ollamaUrl: settings.ollamaUrl,
           profileId: profile.id,
-          allowDownload: profile.role === "eltern",
+          tools: settings.tools !== false,
+          allowDownload: profile.role === "eltern" && settings.tools !== false,
         }),
         signal: controller.signal,
       });

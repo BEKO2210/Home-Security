@@ -29,6 +29,26 @@ Privater, lokaler KI-Home-Assistent als PWA. Ausgelegt als **Agentic Home System
 - **Profile = Personas.** `lib/store.ts → systemPrompt()` baut pro Familienmitglied einen System-Prompt: kindgerecht für Kinder, geduldig für Großeltern.
 - **Alles Client-State in localStorage.** Keine Datenbank nötig; Chats bleiben pro Gerät und Profil. (Späterer Ausbau: SQLite/Postgres im Heimnetz.)
 
+## Agent-Werkzeuge & Gedächtnis (live)
+
+`lib/tools.ts` definiert Ollama-Tools, die der Server in einer Tool-Schleife
+(max. 3 Runden, streaming) ausführt:
+
+| Tool | Zweck | Schutz |
+|---|---|---|
+| `web_search` | DuckDuckGo-HTML-Suche, Top 5 | Timeout 10 s |
+| `fetch_url` | Webseite als Text (6 000 Zeichen) | nur http(s), Timeout |
+| `download_file` | Datei nach `~/Downloads` | nur Eltern-Profile, Pfad-Sanitizing, 500 MB-Limit, kein Überschreiben |
+| `memory_save` | Fakt ins Langzeitgedächtnis | pro Profil, Dedupe, max. 200 Fakten |
+
+Langzeitgedächtnis (`lib/memory.ts`): eine JSON-Datei pro Profil unter
+`.heimgeist/memory/` (bleibt auf dem Familien-PC, gitignored). Bei jeder
+Chat-Anfrage werden die Fakten des Profils in den System-Prompt injiziert;
+Verwaltung über `/api/memory` und die Einstellungen-Seite.
+
+Modelle ohne Tool-Support (HTTP 400) fallen automatisch auf reinen Chat
+zurück. `lib/models.ts` wählt das Standard-Modell automatisch.
+
 ## Erweiterungspunkte
 
 ### 1. Voice-Adapter (Phase 2 — Whisper)

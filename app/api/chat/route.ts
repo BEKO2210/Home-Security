@@ -134,6 +134,10 @@ export async function POST(req: NextRequest) {
         "\n\nWenn du etwas Dauerhaftes über die Person erfährst (Vorlieben, wichtige Termine, Allergien) oder sie dich bittet, dir etwas zu merken, speichere es mit memory_save.";
     }
   }
+  if (wantTools) {
+    system +=
+      "\n\nWerkzeug-Regeln: Rufe Werkzeuge ausschließlich über die Tool-Schnittstelle auf — schreibe niemals JSON oder Werkzeugnamen in deine Antwort. Steht die Antwort bereits oben im Gedächtnis oder im Gespräch, antworte direkt ohne Werkzeug. Es gibt nur die bereitgestellten Werkzeuge, keine anderen.";
+  }
 
   // Erreichbarkeit prüfen — sonst Demo-Modus
   let first: Response;
