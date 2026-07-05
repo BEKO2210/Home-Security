@@ -40,6 +40,7 @@ Privater, lokaler KI-Home-Assistent als PWA. Ausgelegt als **Agentic Home System
 | `fetch_url` | Webseite als Text (6 000 Zeichen) | nur http(s), Timeout |
 | `download_file` | Datei nach `~/Downloads` | nur Eltern-Profile, Pfad-Sanitizing, 500 MB-Limit, kein Überschreiben |
 | `memory_save` | Fakt ins Langzeitgedächtnis | pro Profil, Dedupe, max. 200 Fakten |
+| `camera_look` | Kamerabild holen + per Vision-Modell (llava) beschreiben | nur lokale go2rtc-Frames |
 
 Langzeitgedächtnis (`lib/memory.ts`): eine JSON-Datei pro Profil unter
 `.heimgeist/memory/` (bleibt auf dem Familien-PC, gitignored). Bei jeder
@@ -79,7 +80,7 @@ Kein UI-Code ändert sich — der Mikrofon-Button im Chat nutzt nur das Interfac
 2. Seite unter `app/app/<id>/page.tsx` anlegen.
 3. Serverseitige Integration als API-Route unter `app/api/<id>/`.
 
-**Kameras konkret:** [go2rtc](https://github.com/AlexxIT/go2rtc) im Heimnetz liefert WebRTC/MSE-Streams für IP-Kameras; eine `app/app/cameras/page.tsx` bindet die Streams ein, [Frigate](https://frigate.video) liefert KI-Ereignisse (Person erkannt etc.), die HeimGeist im Chat melden kann.
+**Kameras (live seit Phase 3):** [go2rtc](https://github.com/AlexxIT/go2rtc) (deploy/) nimmt RTSP/HTTP-Quellen, Handy-Apps („IP Webcam") und USB-Webcams. Registry in `.heimgeist/cameras.json` (`lib/cameras.ts`), idempotent in go2rtc registriert. Die App proxied Snapshot (`/api/cameras/snapshot`) und MP4-Live-Stream (`/api/cameras/stream`) — kein Mixed-Content über HTTPS. Ausbau: [Frigate](https://frigate.video) für Ereignis-Erkennung (Person erkannt → Push/Chat-Meldung).
 
 **Automationen konkret:** Home-Assistant-REST/WebSocket-API als Tool-Schicht; der Chat bekommt Function-Calling (Ollama `tools`), damit „Mach das Wohnzimmerlicht an“ eine echte Aktion wird.
 

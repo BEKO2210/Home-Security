@@ -25,6 +25,18 @@ services:
               count: 1
               capabilities: [gpu]
 
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    container_name: heimgeist-go2rtc
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./go2rtc:/config
+    devices:
+      # USB-Webcams (z. B. Logitech C270) direkt nutzbar
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+
   caddy:
     image: caddy:2-alpine
     container_name: heimgeist-caddy

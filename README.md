@@ -55,7 +55,9 @@ sonst die Browser-Spracherkennung. Smoke-Test: `./scripts/smoke.sh`
 | `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama-Server (serverseitiger Proxy) |
 | `WHISPER_BASE_URL` | `http://127.0.0.1:9000` | faster-whisper-Server |
 | `HEIMGEIST_DOWNLOAD_DIR` | `~/Downloads` | Zielordner für download_file |
-| `HEIMGEIST_DATA_DIR` | `./.heimgeist` | Langzeitgedächtnis-Ablage |
+| `HEIMGEIST_DATA_DIR` | `./.heimgeist` | Langzeitgedächtnis & Kamera-Registry |
+| `GO2RTC_BASE_URL` | `http://127.0.0.1:1984` | go2rtc Kamera-Server |
+| `HEIMGEIST_VISION_MODEL` | `llava:7b` | Vision-Modell für camera_look |
 
 Ohne erreichbares Ollama läuft die App im **Demo-Modus** (z. B. auf Vercel) — ideal als Landing Page + Vorschau.
 
@@ -63,7 +65,7 @@ Ohne erreichbares Ollama läuft die App im **Demo-Modus** (z. B. auf Vercel) —
 
 1. ✅ **Phase 1:** Familien-Chat, Profile, Internet-Werkzeuge, Langzeitgedächtnis, Dashboard, PWA
 2. ✅ **Phase 2:** Whisper-Sprachsteuerung (faster-whisper, GPU) + HTTPS im Heimnetz
-3. 🔜 **Phase 3:** Kameras (go2rtc / Frigate)
+3. ✅ **Phase 3:** Kameras — Live-Streams (go2rtc: IP-Kamera, Handy-App, USB-Webcam) + KI-Blick per Vision-Modell (`camera_look`, llava)
 4. 🔜 **Phase 4:** Automationen (Home-Assistant-Bridge, Function-Calling)
 
 Details: [ARCHITECTURE.md](ARCHITECTURE.md)

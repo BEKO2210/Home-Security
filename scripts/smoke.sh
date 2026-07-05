@@ -49,6 +49,17 @@ for id in $(curl -s "$BASE/api/memory?profileId=smoketest" | grep -o '"id":"[^"]
   curl -s -X DELETE "$BASE/api/memory?profileId=smoketest&factId=$id" -o /dev/null
 done
 
+CAMS=$(curl -s --max-time 10 "$BASE/api/cameras")
+if echo "$CAMS" | grep -q '"online":true'; then
+  echo "  OK   Kamera-Server (go2rtc)"; PASS=$((PASS+1))
+  CAMID=$(echo "$CAMS" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+  if [ -n "$CAMID" ]; then
+    [ "$(code "$BASE/api/cameras/snapshot?id=$CAMID")" = "200" ]; check "Kamera-Snapshot ($CAMID)" $?
+  fi
+else
+  echo "  SKIP Kamera-Server (nicht gestartet — deploy/docker-compose.yml)"
+fi
+
 WHISPER=$(curl -s --max-time 5 "$BASE/api/transcribe")
 if echo "$WHISPER" | grep -q '"online":true'; then
   echo "  OK   Whisper-Server erreichbar"; PASS=$((PASS+1))

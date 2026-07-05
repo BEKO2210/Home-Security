@@ -2,6 +2,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { homedir } from "os";
 import path from "path";
 import { addMemory } from "@/lib/memory";
+import { listCameras, GO2RTC_BASE } from "@/lib/cameras";
 
 /**
  * Server-side agent tools for the chat (Ollama tool calling).
@@ -49,6 +50,74 @@ export const TOOL_DEFS = [
     },
   },
 ];
+
+export const CAMERA_TOOL_DEF = {
+  type: "function",
+  function: {
+    name: "camera_look",
+    description:
+      "Schaut auf eine Kamera im Haus und beschreibt, was dort gerade zu sehen ist. Nutze dies, wenn jemand fragt, was auf einer Kamera los ist.",
+    parameters: {
+      type: "object",
+      properties: {
+        camera: {
+          type: "string",
+          description: "Name der Kamera, z. B. 'Wohnzimmer'. Leer = erste Kamera.",
+        },
+      },
+    },
+  },
+};
+
+const VISION_MODEL = process.env.HEIMGEIST_VISION_MODEL ?? "llava:7b";
+
+async function cameraLook(cameraName: string, ollamaBase: string): Promise<string> {
+  const cams = await listCameras();
+  if (!cams.length) return "Es sind keine Kameras eingerichtet.";
+  const cam =
+    cams.find((c) => c.name.toLowerCase().includes(cameraName.toLowerCase())) ??
+    cams[0];
+
+  let image: string;
+  try {
+    const res = await fetch(
+      `${GO2RTC_BASE}/api/frame.jpeg?src=${encodeURIComponent(cam.id)}`,
+      { signal: AbortSignal.timeout(10_000) },
+    );
+    if (!res.ok) throw new Error(`${res.status}`);
+    image = Buffer.from(await res.arrayBuffer()).toString("base64");
+  } catch {
+    return `Kamera "${cam.name}" liefert gerade kein Bild.`;
+  }
+
+  try {
+    const res = await fetch(`${ollamaBase}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: VISION_MODEL,
+        stream: false,
+        messages: [
+          {
+            role: "user",
+            content:
+              "Beschreibe kurz und konkret auf Deutsch, was auf diesem Kamerabild zu sehen ist (Personen, Tiere, Auffälligkeiten).",
+            images: [image],
+          },
+        ],
+      }),
+      signal: AbortSignal.timeout(120_000),
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    const data = (await res.json()) as { message?: { content?: string } };
+    const text = data.message?.content?.trim();
+    return text
+      ? `Kamera "${cam.name}": ${text}`
+      : `Kamera "${cam.name}": Bild da, aber keine Beschreibung möglich.`;
+  } catch {
+    return `Bild von "${cam.name}" geholt, aber das Vision-Modell (${VISION_MODEL}) antwortet nicht.`;
+  }
+}
 
 export const MEMORY_TOOL_DEF = {
   type: "function",
@@ -187,6 +256,7 @@ async function downloadFile(url: string, filename: string): Promise<string> {
 
 export interface ToolContext {
   profileId?: string;
+  ollamaBase?: string;
 }
 
 export async function executeTool(
@@ -202,6 +272,11 @@ export async function executeTool(
         return await fetchUrl(String(args.url ?? ""));
       case "download_file":
         return await downloadFile(String(args.url ?? ""), String(args.filename ?? ""));
+      case "camera_look":
+        return await cameraLook(
+          String(args.camera ?? ""),
+          ctx.ollamaBase ?? "http://127.0.0.1:11434",
+        );
       case "memory_save": {
         if (!ctx.profileId) return "Fehler: kein Profil aktiv.";
         const fact = String(args.fact ?? "").trim();
@@ -222,4 +297,5 @@ export const TOOL_LABEL: Record<string, string> = {
   fetch_url: "Lese Webseite",
   download_file: "Lade Datei herunter",
   memory_save: "Merke mir",
+  camera_look: "Schaue auf Kamera",
 };

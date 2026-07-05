@@ -1,0 +1,7 @@
+# go2rtc — Kamera-Streaming für HeimGeist.
+# Streams werden von der App über die API verwaltet (.heimgeist/cameras.json
+# ist die Quelle der Wahrheit); hier muss nichts von Hand gepflegt werden.
+api:
+  listen: "127.0.0.1:1984"
+
+streams: {}

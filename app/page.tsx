@@ -67,8 +67,8 @@ const roadmap = [
   {
     phase: "Phase 3",
     title: "Kameras",
-    text: "IP-Kameras via go2rtc/Frigate, Live-Streams und Ereignis-Erkennung.",
-    status: "geplant",
+    text: "Live-Streams via go2rtc (IP-Kamera, Handy, USB) + KI-Blick per Vision-Modell.",
+    status: "live",
   },
   {
     phase: "Phase 4",

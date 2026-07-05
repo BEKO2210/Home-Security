@@ -41,8 +41,9 @@ export const MODULES: HomeModule[] = [
     id: "cameras",
     name: "Kameras",
     icon: "camera",
-    description: "IP-Kameras über go2rtc/Frigate einbinden: Live-Streams & KI-Ereignisse.",
-    status: "bald",
+    description: "Live-Streams von IP-Kameras, Handy oder USB-Webcam — und die KI schaut auf Wunsch nach, was los ist.",
+    status: "aktiv",
+    href: "/app/cameras",
     phase: 3,
   },
   {

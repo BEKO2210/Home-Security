@@ -3,6 +3,7 @@ import {
   TOOL_DEFS,
   DOWNLOAD_TOOL_DEF,
   MEMORY_TOOL_DEF,
+  CAMERA_TOOL_DEF,
   executeTool,
   ToolCall,
   TOOL_LABEL,
@@ -172,6 +173,7 @@ export async function POST(req: NextRequest) {
   const toolDefs = wantTools
     ? [
         ...TOOL_DEFS,
+        CAMERA_TOOL_DEF,
         ...(body.profileId ? [MEMORY_TOOL_DEF] : []),
         ...(body.allowDownload ? [DOWNLOAD_TOOL_DEF] : []),
       ]
@@ -188,7 +190,7 @@ export async function POST(req: NextRequest) {
   }
   if (wantTools) {
     system +=
-      "\n\nWerkzeug-Regeln: Rufe Werkzeuge ausschließlich über die Tool-Schnittstelle auf — schreibe niemals JSON oder Werkzeugnamen in deine Antwort. Steht die Antwort bereits oben im Gedächtnis oder im Gespräch, antworte direkt ohne Werkzeug. Es gibt nur die bereitgestellten Werkzeuge, keine anderen.";
+      "\n\nWerkzeug-Regeln: Rufe Werkzeuge ausschließlich über die Tool-Schnittstelle auf — schreibe niemals JSON oder Werkzeugnamen in deine Antwort. Steht die Antwort bereits oben im Gedächtnis oder im Gespräch, antworte direkt ohne Werkzeug. Es gibt nur die bereitgestellten Werkzeuge, keine anderen. Gib nach einem Werkzeug-Aufruf dessen Ergebnis INHALTLICH wieder (was gefunden/gesehen wurde) — sage nie nur, dass du das Werkzeug benutzt hast.";
   }
 
   // Erreichbarkeit prüfen — sonst Demo-Modus
@@ -314,7 +316,7 @@ export async function POST(req: NextRequest) {
                       "",
                   );
             send(`\n\n*${label}${hint ? `: ${hint}` : ""} …*\n\n`);
-            const result = await executeTool(call, { profileId: body.profileId });
+            const result = await executeTool(call, { profileId: body.profileId, ollamaBase: base });
             msgs.push({ role: "tool", content: result, tool_name: name });
           }
           upstream = null; // nächste Runde neu anfragen
